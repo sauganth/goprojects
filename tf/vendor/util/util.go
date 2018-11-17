@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 	google_protobuf "github.com/golang/protobuf/ptypes/wrappers"
 )
 
-func newPredictRequest(modelName string, modelVersion int64) (pr *pb.PredictRequest) {
+func NewPredictRequest(modelName string, modelVersion int64) (pr *pb.PredictRequest) {
 	return &pb.PredictRequest{
 		ModelSpec: &pb.ModelSpec{
 			Name: modelName,
@@ -22,7 +22,7 @@ func newPredictRequest(modelName string, modelVersion int64) (pr *pb.PredictRequ
 }
 
 // if tensor is one dim, shapeSize is nil
-func addInput(pr *pb.PredictRequest, tensorName string, dataType framework.DataType, tensor interface{},
+func AddInput(pr *pb.PredictRequest, tensorName string, dataType framework.DataType, tensor interface{},
 	shapeSize []int64, shapeName []string) (err error) {
 	v := reflect.ValueOf(tensor)
 	if v.Kind() != reflect.Slice {

@@ -1,0 +1,39 @@
+syntax = "proto3";
+package scoring;
+
+service Scoring {
+  rpc AddModelMap(AddModelMapRequest) returns (AddModelMapResponse) {}
+  rpc Predict(PredictRequest) returns (PredictResponse) {}
+}
+
+message AddModelMapRequest {
+  string name = 1;
+  repeated KeyMapConfig KeyMapConfig = 2;
+}
+
+message KeyMapConfig {
+  enum DataType {
+  DataType_DT_FLOAT = 0;
+  DataType_DT_DOUBLE = 1;
+  DataType_DT_INT32 = 2;
+  }
+  DataType dataType = 1;
+  string inkey = 2;
+  string outkey = 3;
+  repeated int64 shape = 4;
+
+}
+
+message AddModelMapResponse {
+  bool status = 1;
+}
+
+message PredictRequest {
+  string modelName = 1;
+  map<string, string> feats = 2;
+}
+
+message PredictResponse {
+  bool status = 1;
+  map<string, string> responseMap = 2;
+}
