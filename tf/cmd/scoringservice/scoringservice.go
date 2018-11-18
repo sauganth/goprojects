@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
-	"util"
+
+	"encoding/json"
 
 	"golang.org/x/net/context"
 
@@ -19,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"scoring"
+	"util"
 )
 
 // Server is the main concept that will house our Model Configuration
@@ -71,10 +75,61 @@ func (s *server) Predict(ctx context.Context, req *scoring.PredictRequest) (pr *
 func getResponseFromOutputTensors(outputs map[string]*framework.TensorProto) map[string]string {
 	responseMap := map[string]string{}
 	for k, v := range outputs {
-		fmt.Println(k, v)
-		//responseMap[k] = string(v.GetStringVal())
+		responseMap[k] = convertToString(v)
 	}
 	return responseMap
+}
+
+func convertToString(tensor *framework.TensorProto) string {
+	valuesText := []string{}
+	switch tensor.GetDtype() {
+	case framework.DataType_DT_FLOAT:
+		values := tensor.GetFloatVal()
+		for i := range values {
+			number := values[i]
+			text := strconv.FormatFloat(float64(number), 'E', -1, 32)
+			valuesText = append(valuesText, text)
+		}
+
+		// Join our string slice.
+		result := strings.Join(valuesText, ",")
+		return result
+	case framework.DataType_DT_DOUBLE:
+		values := tensor.GetDoubleVal()
+		for i := range values {
+			number := values[i]
+			text := strconv.FormatFloat(number, 'E', -1, 64)
+			valuesText = append(valuesText, text)
+		}
+
+		// Join our string slice.
+		result := strings.Join(valuesText, ",")
+		return result
+	case framework.DataType_DT_INT64:
+		values := tensor.GetInt64Val()
+		for i := range values {
+			number := values[i]
+			text := strconv.FormatInt(number, 10)
+			valuesText = append(valuesText, text)
+		}
+
+		// Join our string slice.
+		result := strings.Join(valuesText, ",")
+		return result
+	case framework.DataType_DT_INT32:
+		values := tensor.GetIntVal()
+		for i := range values {
+			number := values[i]
+			text := strconv.FormatInt(int64(number), 10)
+			valuesText = append(valuesText, text)
+		}
+
+		// Join our string slice.
+		result := strings.Join(valuesText, ",")
+		return result
+	default:
+		return "Unknown data type, couldn't understand!"
+	}
 }
 
 func newDensePredictRequest(modelName *string, modelVersion *int64, feats map[string]string, keyMapConfig []*scoring.KeyMapConfig) (pr *pb.PredictRequest, err error) {
@@ -105,7 +160,7 @@ func newDensePredictRequest(modelName *string, modelVersion *int64, feats map[st
 		for _, x := range shape {
 			prod *= x
 		}
-		tt, err := getTensorInputArray(&inval, dataT, prod)
+		tt, err := getTensorInputArray(inval, dataT, prod)
 		if err != nil {
 			err = errors.New("Mapping failed")
 			return nil, err
@@ -122,16 +177,23 @@ func newDensePredictRequest(modelName *string, modelVersion *int64, feats map[st
 	return pr, nil
 }
 
-func getTensorInputArray(featString *string, dataT framework.DataType, prod int64) (tensor interface{}, err error) {
+func getTensorInputArray(featString string, dataT framework.DataType, prod int64) (tensor interface{}, err error) {
 	switch dataT {
 	case framework.DataType_DT_FLOAT:
 		tt := make([]float32, prod)
+		//todo Add conversion from featString to tt
+		dec := json.NewDecoder(strings.NewReader(featString))
+		err := dec.Decode(&tt)
 		return tt, err
 	case framework.DataType_DT_DOUBLE:
 		tt := make([]float64, prod)
+		dec := json.NewDecoder(strings.NewReader(featString))
+		err := dec.Decode(&tt)
 		return tt, err
 	case framework.DataType_DT_INT32:
 		tt := make([]int32, prod)
+		dec := json.NewDecoder(strings.NewReader(featString))
+		err := dec.Decode(&tt)
 		return tt, err
 	default:
 		return nil, errors.New("Unknown data type in getTensorInputArray")

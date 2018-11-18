@@ -8,7 +8,7 @@ service Scoring {
 
 message AddModelMapRequest {
   string name = 1;
-  repeated KeyMapConfig KeyMapConfig = 2;
+  repeated KeyMapConfig keyMapConfig = 2;
 }
 
 message KeyMapConfig {
